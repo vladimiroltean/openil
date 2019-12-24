@@ -2,4 +2,4 @@
 Name=eno2
 
 [Network]
-DHCP=ipv4
+LinkLocalAddressing=yes

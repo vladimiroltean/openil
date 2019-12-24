@@ -2,5 +2,5 @@
 Name=swp[01234]
 
 [Network]
-BindCarrier=swp5
+BindCarrier=eno2
 Bridge=br0
