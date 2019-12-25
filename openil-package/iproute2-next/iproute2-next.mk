@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-IPROUTE2_NEXT_VERSION = 9b13cddfe268 # devlink: implement flash status monitoring
+IPROUTE2_NEXT_VERSION = 0dcf36db1a78 # iplink: add support for STP xstats
 IPROUTE2_NEXT_SITE = https://git.kernel.org/pub/scm/network/iproute2/iproute2-next.git
 IPROUTE2_NEXT_SITE_METHOD = git
 IPROUTE2_NEXT_DEPENDENCIES = host-bison host-flex host-pkgconf \
