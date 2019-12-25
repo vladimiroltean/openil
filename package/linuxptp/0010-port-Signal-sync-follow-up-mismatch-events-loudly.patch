@@ -1,0 +1,82 @@
+From 96390abf66b4eb9c14fc2a6d30491f047ad51510 Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <olteanv@gmail.com>
+Date: Tue, 19 Nov 2019 14:44:36 +0200
+Subject: [PATCH 3/3] port: Signal sync/follow-up mismatch events loudly
+
+Ptp4l is too silent when receiving, for whatever reason, out of order
+messages. If the reordering is persistent (which is either a broken
+network, or a broken kernel), the behavior looks like a complete
+synchronization stall, since the application is designed to never
+attempt to recover from such a condition.
+
+At least save some people some debugging hours and be loud when the
+application reaches this code path.
+
+Signed-off-by: Vladimir Oltean <olteanv@gmail.com>
+---
+ port.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/port.c b/port.c
+index 58fbe669af14..58559531f7e7 100644
+--- a/port.c
++++ b/port.c
+@@ -1191,6 +1191,23 @@ static void port_synchronize(struct port *p,
+ 	}
+ }
+ 
++static void port_syfufsm_print_mismatch(struct port *p, enum syfu_event event,
++					struct ptp_message *m)
++{
++	int expected_msgtype;
++
++	if (event == SYNC_MISMATCH)
++		expected_msgtype = FOLLOW_UP;
++	else
++		expected_msgtype = SYNC;
++
++	pr_err("port %hu: have %s %d, expecting %s but got %s %d, dropping",
++	       portnum(p), msg_type_string(msg_type(p->last_syncfup)),
++	       p->last_syncfup->header.sequenceId,
++	       msg_type_string(expected_msgtype),
++	       msg_type_string(msg_type(m)), m->header.sequenceId);
++}
++
+ /*
+  * Handle out of order packets. The network stack might
+  * provide the follow up _before_ the sync message. After all,
+@@ -1225,6 +1242,7 @@ static void port_syfufsm(struct port *p, enum syfu_event event,
+ 	case SF_HAVE_SYNC:
+ 		switch (event) {
+ 		case SYNC_MISMATCH:
++			port_syfufsm_print_mismatch(p, event, m);
+ 			msg_put(p->last_syncfup);
+ 			msg_get(m);
+ 			p->last_syncfup = m;
+@@ -1232,6 +1250,7 @@ static void port_syfufsm(struct port *p, enum syfu_event event,
+ 		case SYNC_MATCH:
+ 			break;
+ 		case FUP_MISMATCH:
++			port_syfufsm_print_mismatch(p, event, m);
+ 			msg_put(p->last_syncfup);
+ 			msg_get(m);
+ 			p->last_syncfup = m;
+@@ -1252,6 +1271,7 @@ static void port_syfufsm(struct port *p, enum syfu_event event,
+ 	case SF_HAVE_FUP:
+ 		switch (event) {
+ 		case SYNC_MISMATCH:
++			port_syfufsm_print_mismatch(p, event, m);
+ 			msg_put(p->last_syncfup);
+ 			msg_get(m);
+ 			p->last_syncfup = m;
+@@ -1267,6 +1287,7 @@ static void port_syfufsm(struct port *p, enum syfu_event event,
+ 			p->syfu = SF_EMPTY;
+ 			break;
+ 		case FUP_MISMATCH:
++			port_syfufsm_print_mismatch(p, event, m);
+ 			msg_put(p->last_syncfup);
+ 			msg_get(m);
+ 			p->last_syncfup = m;
+-- 
+2.17.1
+
