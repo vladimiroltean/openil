@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LINUXPTP_VERSION = e20d8228f951 # master ("port: Avoid calling freed servo after switching PHC.")
+LINUXPTP_VERSION = e0580929f451 # master ("phc2sys: Fix frequency estimation when synchronizing a PHC to the system clock.")
 LINUXPTP_SITE = http://git.code.sf.net/p/linuxptp/code
 LINUXPTP_SITE_METHOD = git
 LINUXPTP_LICENSE = GPL-2.0+
