@@ -29,8 +29,9 @@ LINUX_SITE_METHOD = hg
 else ifeq ($(BR2_LINUX_KERNEL_CUSTOM_SVN),y)
 LINUX_SITE = $(call qstrip,$(BR2_LINUX_KERNEL_CUSTOM_REPO_URL))
 LINUX_SITE_METHOD = svn
-else ifeq ($(BR2_LINUX_KERNEL_LATEST_CIP_VERSION),y)
-LINUX_SITE = git://git.kernel.org/pub/scm/linux/kernel/git/cip/linux-cip.git
+else ifeq ($(BR2_LINUX_KERNEL_LATEST_CIP_VERSION)$(BR2_LINUX_KERNEL_LATEST_CIP_RT_VERSION),y)
+LINUX_SOURCE = linux-cip-$(LINUX_VERSION).tar.gz
+LINUX_SITE = https://git.kernel.org/pub/scm/linux/kernel/git/cip/linux-cip.git/snapshot
 else ifneq ($(findstring -rc,$(LINUX_VERSION)),)
 # Since 4.12-rc1, -rc kernels are generated from cgit. This also works for
 # older -rc kernels.
@@ -318,6 +319,18 @@ define LINUX_KCONFIG_FIXUP_CMDS
 		$(call KCONFIG_ENABLE_OPT,CONFIG_AEABI,$(@D)/.config))
 	$(if $(BR2_powerpc)$(BR2_powerpc64)$(BR2_powerpc64le),
 		$(call KCONFIG_ENABLE_OPT,CONFIG_PPC_DISABLE_WERROR,$(@D)/.config))
+	$(if $(BR2_ARC_PAGE_SIZE_4K),
+		$(call KCONFIG_ENABLE_OPT,CONFIG_ARC_PAGE_SIZE_4K,$(@D)/.config)
+		$(call KCONFIG_DISABLE_OPT,CONFIG_ARC_PAGE_SIZE_8K,$(@D)/.config)
+		$(call KCONFIG_DISABLE_OPT,CONFIG_ARC_PAGE_SIZE_16K,$(@D)/.config))
+	$(if $(BR2_ARC_PAGE_SIZE_8K),
+		$(call KCONFIG_DISABLE_OPT,CONFIG_ARC_PAGE_SIZE_4K,$(@D)/.config)
+		$(call KCONFIG_ENABLE_OPT,CONFIG_ARC_PAGE_SIZE_8K,$(@D)/.config)
+		$(call KCONFIG_DISABLE_OPT,CONFIG_ARC_PAGE_SIZE_16K,$(@D)/.config))
+	$(if $(BR2_ARC_PAGE_SIZE_16K),
+		$(call KCONFIG_DISABLE_OPT,CONFIG_ARC_PAGE_SIZE_4K,$(@D)/.config)
+		$(call KCONFIG_DISABLE_OPT,CONFIG_ARC_PAGE_SIZE_8K,$(@D)/.config)
+		$(call KCONFIG_ENABLE_OPT,CONFIG_ARC_PAGE_SIZE_16K,$(@D)/.config))
 	$(if $(BR2_TARGET_ROOTFS_CPIO),
 		$(call KCONFIG_ENABLE_OPT,CONFIG_BLK_DEV_INITRD,$(@D)/.config))
 	# As the kernel gets compiled before root filesystems are

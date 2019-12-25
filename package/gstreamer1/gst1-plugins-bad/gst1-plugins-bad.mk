@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-GST1_PLUGINS_BAD_VERSION = 1.16.1
+GST1_PLUGINS_BAD_VERSION = 1.16.2
 GST1_PLUGINS_BAD_SOURCE = gst-plugins-bad-$(GST1_PLUGINS_BAD_VERSION).tar.xz
 GST1_PLUGINS_BAD_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-bad
 GST1_PLUGINS_BAD_INSTALL_STAGING = YES
@@ -63,14 +63,6 @@ GST1_PLUGINS_BAD_CONF_OPTS += \
 	-Dopencv=disabled
 
 GST1_PLUGINS_BAD_DEPENDENCIES = gst1-plugins-base gstreamer1
-
-ifeq ($(BR2_PACKAGE_RPI_USERLAND),y)
-# RPI has odd locations for several required headers.
-GST1_PLUGINS_BAD_CFLAGS=$(TARGET_CPPFLAGS) \
-	$(STAGING_DIR)/usr/include/IL \
-	$(STAGING_DIR)/usr/include/interface/vcos/pthreads \
-	$(STAGING_DIR)/usr/include/interface/vmcs_host/linux
-endif
 
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_WAYLAND),y)
 GST1_PLUGINS_BAD_CONF_OPTS += -Dwayland=enabled

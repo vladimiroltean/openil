@@ -144,6 +144,31 @@ endif
 
 ###############################################################################
 
+comment "Legacy options removed in 2020.02"
+
+config BR2_PACKAGE_PYTHON_SCAPY3K
+	bool "python-scapy3k is replaced by python-scapy"
+	select BR2_LEGACY
+	select BR2_PACKAGE_PYTHON_SCAPY
+	help
+	  python-scapy3k has been deprecated, since python-scapy has
+	  gained Python 3 support. Use BR2_PACKAGE_PYTHON_SCAPY
+	  instead.
+
+config BR2_BINUTILS_VERSION_2_30_X
+	bool "binutils version 2.30 support removed"
+	select BR2_LEGACY
+	help
+	  Support for binutils version 2.30 has been removed. The
+	  current default version (2.31 or later) has been selected
+	  instead.
+
+config BR2_PACKAGE_RPI_USERLAND_START_VCFILED
+	bool "rpi-userland start vcfiled was removed"
+	select BR2_LEGACY
+	help
+	  The vcfiled support was removed upstream.
+
 comment "Legacy options removed in 2019.11"
 
 config BR2_PACKAGE_OPENVMTOOLS_PROCPS

@@ -16,7 +16,7 @@ GLIBC_SITE = $(call github,c-sky,glibc,$(GLIBC_VERSION))
 else
 # Generate version string using:
 #   git describe --match 'glibc-*' --abbrev=40 origin/release/MAJOR.MINOR/master | cut -d '-' -f 2-
-GLIBC_VERSION = 2.30-1-gbe9a328c93834648e0bec106a1f86357d1a8c7e1
+GLIBC_VERSION = 2.30-20-g50f20fe506abb8853641006a7b90a81af21d7b91
 # Upstream doesn't officially provide an https download link.
 # There is one (https://sourceware.org/git/glibc.git) but it's not reliable,
 # sometimes the connection times out. So use an unofficial github mirror.
@@ -74,9 +74,18 @@ endef
 endif
 
 GLIBC_CONF_ENV = \
-	ac_cv_path_BASH_SHELL=/bin/bash \
+	ac_cv_path_BASH_SHELL=/bin/$(if $(BR2_PACKAGE_BASH),bash,sh) \
 	libc_cv_forced_unwind=yes \
 	libc_cv_ssp=no
+
+# POSIX shell does not support localization, so remove the corresponding
+# syntax from ldd if bash is not selected.
+ifeq ($(BR2_PACKAGE_BASH),)
+define GLIBC_LDD_NO_BASH
+	$(SED) 's/$$"/"/g' $(@D)/elf/ldd.bash.in
+endef
+GLIBC_POST_PATCH_HOOKS += GLIBC_LDD_NO_BASH
+endif
 
 # Override the default library locations of /lib64/<abi> and
 # /usr/lib64/<abi>/ for RISC-V.
@@ -143,10 +152,24 @@ ifeq ($(BR2_PACKAGE_GDB),y)
 GLIBC_LIBS_LIB += libthread_db.so.*
 endif
 
+ifeq ($(BR2_PACKAGE_GLIBC_UTILS),y)
+GLIBC_TARGET_UTILS_USR_BIN = posix/getconf elf/ldd
+GLIBC_TARGET_UTILS_SBIN = elf/ldconfig
+ifeq ($(BR2_SYSTEM_ENABLE_NLS),y)
+GLIBC_TARGET_UTILS_USR_BIN += locale/locale
+endif
+endif
+
 define GLIBC_INSTALL_TARGET_CMDS
 	for libpattern in $(GLIBC_LIBS_LIB); do \
 		$(call copy_toolchain_lib_root,$$libpattern) ; \
 	done
+	$(foreach util,$(GLIBC_TARGET_UTILS_USR_BIN), \
+		$(INSTALL) -D -m 0755 $(@D)/build/$(util) $(TARGET_DIR)/usr/bin/$(notdir $(util))
+	)
+	$(foreach util,$(GLIBC_TARGET_UTILS_SBIN), \
+		$(INSTALL) -D -m 0755 $(@D)/build/$(util) $(TARGET_DIR)/sbin/$(notdir $(util))
+	)
 endef
 
 $(eval $(autotools-package))

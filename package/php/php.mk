@@ -122,6 +122,16 @@ PHP_CONF_OPTS += \
 	$(if $(BR2_PACKAGE_PHP_EXT_MBSTRING),--enable-mbstring) \
 	$(if $(BR2_PACKAGE_PHP_EXT_PHAR),--enable-phar)
 
+ifeq ($(BR2_PACKAGE_PHP_EXT_LIBARGON2),y)
+PHP_CONF_OPTS += --with-password-argon2=$(STAGING_DIR)/usr
+PHP_DEPENDENCIES += libargon2
+endif
+
+ifeq ($(BR2_PACKAGE_PHP_EXT_LIBSODIUM),y)
+PHP_CONF_OPTS += --with-sodium=$(STAGING_DIR)/usr
+PHP_DEPENDENCIES += libsodium
+endif
+
 ifeq ($(BR2_PACKAGE_PHP_EXT_MCRYPT),y)
 PHP_CONF_OPTS += --with-mcrypt=$(STAGING_DIR)/usr
 PHP_DEPENDENCIES += libmcrypt
@@ -328,9 +338,6 @@ endef
 define PHP_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 0644 $(@D)/sapi/fpm/php-fpm.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/php-fpm.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -fs ../../../../usr/lib/systemd/system/php-fpm.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/php-fpm.service
 endef
 
 define PHP_INSTALL_FPM_CONF

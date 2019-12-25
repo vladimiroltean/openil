@@ -1,3 +1,45 @@
+2019.11, released December 1st, 2019
+
+	Various fixes.
+
+	Infrastructure: Make HOST_<pkg>_DL_OPTS inherit from
+	<pkg>_DL_OPTS by default, just like it is done for a number of
+	other package variables.
+
+	Add <pkg>_KEEP_PY_FILES to exclude specific python .py files
+	from the removal done by BR2_PACKAGE_PYTHON{,3}_PYC_ONLY for
+	the (rare) case where the .py files are needed at runtime
+	rather than .pyc.
+
+	Updated/fixed packages: am33x-cm3, bind, collectd, go, gob2,
+	gst1-plugins-bad, haproxy, jasper, jpeg-turbo, libdrm,
+	libftdi, libftdi1, libnss, libselinux, libstrophe, lzma,
+	minicom, network-manager, nodejs, oniguruma, opencv3,
+	openvmtools, perl-gdgraph, perl-gdtextutil, prosody,
+	python-cchardet, systemd, tiff, wolfssl,
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#11416: check-uniq-files staging issue
+	#12146: Oprofile runtime issue
+	#12166: Compiling nodejs for SAMA5D3 always crash with illegal inst..
+	#12171: Python-opencv needs config.py and config-3.7.py to run..
+	#12196: duma package
+	#12211: host-nodejs 10.15.3 package fail to build
+	#12316: tzdata fails to install with empty "default local time"
+	#12326: network-manager build fails with missing glib error
+	#12366: Gstreamer1 gst1-plugins-bad do not compile with RPI-Userland
+
+2019.11-rc3, released November 24th, 2019
+
+	Fixes all over the tree.
+
+	Updated/fixed packages: asterisk, clamav, domoticz, faifa,
+	gerbera, kmod, kvm-unit-tests, libupnp18, linux-serial-test,
+	lsof, ltp-testsuite, lxc, mesa3d, mesa3d-headers, perl, php,
+	postgresql, qemu, rauc, redis, rpcbind, spice, spice-protocol,
+	systemd, tftpd, waylandpp, webkitgtk, zip
+
 2019.11-rc2, released November 16th, 2019
 
 	Fixes all over the tree.
@@ -125,6 +167,47 @@
 	#12261: sudo versions prior to 1.8.28 are affected.
 	#12276: make clean/distclean does not remove BR2_DL_DIR and BR2_HOST_DIR
 	#12281: Custom configuration fails to build (based on raspberrypi3_..
+
+2019.08.3, released December 7th, 2019
+
+	Important / security related fixes.
+
+	Infrastructure: Make HOST_<pkg>_DL_OPTS inherit from
+	<pkg>_DL_OPTS by default, just like it is done for a number of
+	other package variables
+
+	Add <pkg>_KEEP_PY_FILES to exclude specific python .py files
+	from the removal done by BR2_PACKAGE_PYTHON{,3}_PYC_ONLY for
+	the (rare) case where the .py files are needed at runtime
+	rather than .pyc.
+
+	Fix <pkg>-reconfigure handling for packages using the kconfig
+	infrastructure.
+
+	Toolchain: ensure external toolchain kernel headers version
+	check correctly stop the build on mismatch
+
+	Deconfigs: beaglebone: fix boot issue
+
+	Updated/fixed packages: am33x-cm3, asterisk, bind, chrony,
+	clamav, cmocka, collectd, connman, dhcp, dropwatch, faifa,
+	gettext-tiny, gob2, haproxy, intel-microcode, ipsec-tools,
+	jailhouse, jasper, jpeg-turbo, kodi, kvm-unit-tests, libftdi,
+	libftdi1, libnss, libressl, libstrophe, libsvgtiny, lvm2,
+	lzma, mariadb, minicom, mosquitto, neardal, ninja, nodejs,
+	oniguruma, openvmtools, oracle-mysql, perl-gdgraph,
+	perl-gdtextutil, php, postgresql, prosody, python-cchardet,
+	python-django, qt5wayland, rabbitmq, rauc, redis, rpcbind,
+	socat, spice, spice-protocol, tftpd, tiff, webkitgtk
+
+	New packages: libmspack
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12166: Compiling nodejs for SAMA5D3 always crash with illegal inst..
+	#12171: Python-opencv needs config.py and config-3.7.py to run..
+	#12211: host-nodejs 10.15.3 package fail to build
+	#12316: tzdata fails to install with empty "default local time"
 
 2019.08.2, released November 9th, 2019
 
@@ -573,6 +656,46 @@
 	#11756: package/syslinux: MBR's don't fit because of binutils..
 	#11761: Building custom kernel 5.1-rc3 or later breaks on objtool
 	#11816: Only selected coreutils binaries are installed
+
+2019.02.8, released December 7th, 2019
+
+	Important / security related fixes.
+
+	Infrastructure: Make HOST_<pkg>_DL_OPTS inherit from
+	<pkg>_DL_OPTS by default, just like it is done for a number of
+	other package variables
+
+	Add <pkg>_KEEP_PY_FILES to exclude specific python .py files
+	from the removal done by BR2_PACKAGE_PYTHON{,3}_PYC_ONLY for
+	the (rare) case where the .py files are needed at runtime
+	rather than .pyc.
+
+	Fix <pkg>-reconfigure handling for packages using the kconfig
+	infrastructure.
+
+	Toolchain: ensure external toolchain kernel headers version
+	check correctly stop the build on mismatch
+
+	Deconfigs: beaglebone: fix boot issue
+
+	Updated/fixed packages: am33x-cm3, asterisk, bind, chrony,
+	clamav, collectd, connman, faifa, gob2, haproxy,
+	intel-microcode, ipsec-tools, jasper, jpeg-turbo, kodi,
+	kvm-unit-tests, libftdi, libftdi1, libnss, libstrophe,
+	libsvgtiny, lvm2, lzma, mariadb, minicom, neardal, nodejs,
+	opencv3, openvmtools, oracle-mysql, perl-gdgraph,
+	perl-gdtextutil, php, postgresql, prosody, python-django,
+	rabbitmq-c, rauc, redis, rpcbind, socat, spice,
+	spice-protocol, tftpd, tiff, webkitgtk
+
+	New packages: libmspack
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12166: Compiling nodejs for SAMA5D3 always crash with illegal inst..
+	#12171: Python-opencv needs config.py and config-3.7.py to run..
+	#12211: host-nodejs 10.15.3 package fail to build
+	#12316: tzdata fails to install with empty "default local time"
 
 2019.02.7, Released November 10th, 2019
 
