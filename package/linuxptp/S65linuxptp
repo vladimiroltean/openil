@@ -11,7 +11,7 @@ start() {
 
 	printf "Starting linuxptp system clock synchronization: "
 	start-stop-daemon -S -b -q -p /var/run/linuxptp-phc2sys.pid \
-		-x /usr/sbin/phc2sys -- -s eth0 -c CLOCK_REALTIME -w -S 1.0
+		-x /usr/sbin/phc2sys -- -a -rr -f /etc/linuxptp-system-clock.cfg
 	[ $? = 0 ] && echo "OK" || echo "FAIL"
 }
 

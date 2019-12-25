@@ -30,6 +30,8 @@ define LINUXPTP_INSTALL_TARGET_CMDS
 
 	$(INSTALL) -D -m 644 $(LINUXPTP_PKGDIR)/linuxptp.cfg \
 		$(TARGET_DIR)/etc/linuxptp.cfg
+	$(INSTALL) -D -m 644 $(LINUXPTP_PKGDIR)/linuxptp-system-clock.cfg \
+		$(TARGET_DIR)/etc/linuxptp-system-clock.cfg
 endef
 
 define LINUXPTP_INSTALL_INIT_SYSV
