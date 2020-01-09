@@ -1,0 +1,215 @@
+From 96023d2280189faa299059ba1b1a2903db735165 Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <olteanv@gmail.com>
+Date: Thu, 9 Jan 2020 17:54:09 +0200
+Subject: [PATCH] net: dsa: sja1105: Implement SPI bit flips workaround for PTP
+ time
+
+Apparently on some LS1021A-TSN boards, it is possible to get bit flips
+on bits 31-28 when reading the 64-bit PTPCLKVAL register (the current
+PTP time). This throws off the PTP synchronization irrecoverably.
+
+Using the fsl_dspi tracepoints it was determined that these bit flips
+actually originate from the wire. The reason is unknown at the moment.
+
+The sja1105 switch has CRC32 protection for the static config, but not
+for dynamic config commands (including access to the PTP registers). So
+that can't be used to detect errors here.
+
+Implement a sanity check mechanism in the driver for estimating a valid
+range for the PTP clock, based on passage of time on the local CPU. When
+the PTP clock appears to jump outside the plausible range, drop the
+readout and try again, up to 10 times.
+
+Signed-off-by: Vladimir Oltean <olteanv@gmail.com>
+---
+ drivers/net/dsa/sja1105/sja1105_ptp.c | 83 ++++++++++++++++++++++++++-
+ drivers/net/dsa/sja1105/sja1105_ptp.h |  1 +
+ include/trace/events/sja1105.h        | 17 ++++++
+ 3 files changed, 98 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/dsa/sja1105/sja1105_ptp.c b/drivers/net/dsa/sja1105/sja1105_ptp.c
+index e8bc244dc09a..0677e67ed758 100644
+--- a/drivers/net/dsa/sja1105/sja1105_ptp.c
++++ b/drivers/net/dsa/sja1105/sja1105_ptp.c
+@@ -352,9 +352,8 @@ static int sja1105_ptpegr_ts_poll(struct dsa_switch *ds, int port, u64 *ts)
+ 	return 0;
+ }
+ 
+-/* Caller must hold ptp_data->lock */
+-static int sja1105_ptpclkval_read(struct sja1105_private *priv, u64 *ticks,
+-				  struct ptp_system_timestamp *ptp_sts)
++static int sja1105_ptpclkval_do_read(struct sja1105_private *priv, u64 *ticks,
++				     struct ptp_system_timestamp *ptp_sts)
+ {
+ 	const struct sja1105_regs *regs = priv->info->regs;
+ 	int rc;
+@@ -365,6 +364,78 @@ static int sja1105_ptpclkval_read(struct sja1105_private *priv, u64 *ticks,
+ 	return rc;
+ }
+ 
++static bool sja1105_ptpclkval_sanity_check(struct sja1105_private *priv,
++					   s64 now, u64 ticks)
++{
++	struct sja1105_ptp_data *ptp_data = &priv->ptp_data;
++	s64 clock_realtime_diff, ptpclkval_diff, ratio;
++	s32 divisor;
++
++	/* For clock stepping, anything goes unfortunately. */
++	if (ptp_data->last_op != SJA1105_PTP_ADJUSTFREQ)
++		return true;
++
++	clock_realtime_diff = now - ptp_data->last_ptpclkval_readout;
++	ptpclkval_diff = sja1105_ticks_to_ns((s64)ticks - (s64)ptp_data->last_ptpclkval_ticks);
++
++	if (clock_realtime_diff < 0)
++		clock_realtime_diff = -clock_realtime_diff;
++	if (ptpclkval_diff < 0)
++		ptpclkval_diff = -ptpclkval_diff;
++
++	/* First iteration, anything goes */
++	if (ptp_data->last_ptpclkval_readout == 0)
++		return true;
++	/* Invalid divisor */
++	if (clock_realtime_diff >= GENMASK_ULL(31, 0))
++		return true;
++	if (clock_realtime_diff == 0)
++		return true;
++
++	divisor = (s32)clock_realtime_diff;
++	ratio = div_s64(ptpclkval_diff, divisor);
++
++	/* Sometimes we see a ptpclkval diff as large as 9898680008,
++	 * when the clock_realtime_diff is only 140160. So a ratio threshold
++	 * of 10,000 seems appropriate (in the above case it is 70,624).
++	 * Under normal circumstances, the ratio is 0 or 1.
++	 */
++	if (ratio < 10000)
++		return true;
++
++	trace_sja1105_ptpclkval_discard(ticks);
++
++	return false;
++}
++
++/* Caller must hold ptp_data->lock */
++static int sja1105_ptpclkval_read(struct sja1105_private *priv, u64 *ticks,
++				  struct ptp_system_timestamp *ptp_sts)
++{
++	struct sja1105_ptp_data *ptp_data = &priv->ptp_data;
++	struct timespec64 now;
++	int tries = 10;
++	bool valid;
++	int rc;
++
++	do {
++		ktime_get_real_ts64(&now);
++
++		rc = sja1105_ptpclkval_do_read(priv, ticks, ptp_sts);
++		if (rc < 0)
++			return rc;
++
++		valid = sja1105_ptpclkval_sanity_check(priv,
++						       timespec64_to_ns(&now),
++						       *ticks);
++		ptp_data->last_ptpclkval_readout = timespec64_to_ns(&now);
++	} while (!valid && --tries);
++
++	ptp_data->last_ptpclkval_ticks = *ticks;
++
++	return 0;
++}
++
+ /* Caller must hold ptp_data->lock */
+ static int sja1105_ptpclkval_write(struct sja1105_private *priv, u64 ticks,
+ 				   struct ptp_system_timestamp *ptp_sts)
+@@ -470,6 +541,7 @@ static int sja1105_ptp_reset(struct dsa_switch *ds)
+ 	dev_dbg(ds->dev, "Resetting PTP clock\n");
+ 	rc = sja1105_ptp_commit(ds, &cmd, SPI_WRITE);
+ 
++	ptp_data->last_op = SJA1105_PTP_CLOCKSTEP;
+ 	sja1105_tas_clockstep(priv->ds);
+ 
+ 	mutex_unlock(&ptp_data->lock);
+@@ -535,6 +607,7 @@ int __sja1105_ptp_settime(struct dsa_switch *ds, u64 ns,
+ 			  struct ptp_system_timestamp *ptp_sts)
+ {
+ 	struct sja1105_private *priv = ds->priv;
++	struct sja1105_ptp_data *ptp_data = &priv->ptp_data;
+ 	u64 ticks = ns_to_sja1105_ticks(ns);
+ 	int rc;
+ 
+@@ -546,6 +619,7 @@ int __sja1105_ptp_settime(struct dsa_switch *ds, u64 ns,
+ 
+ 	rc = sja1105_ptpclkval_write(priv, ticks, ptp_sts);
+ 
++	ptp_data->last_op = SJA1105_PTP_CLOCKSTEP;
+ 	sja1105_tas_clockstep(priv->ds);
+ 
+ 	return rc;
+@@ -590,6 +664,7 @@ static int sja1105_ptp_adjfine(struct ptp_clock_info *ptp, long scaled_ppm)
+ 	rc = sja1105_xfer_u32(priv, SPI_WRITE, regs->ptpclkrate, &clkrate32,
+ 			      NULL);
+ 
++	ptp_data->last_op = SJA1105_PTP_ADJUSTFREQ;
+ 	sja1105_tas_adjfreq(priv->ds);
+ 
+ 	mutex_unlock(&ptp_data->lock);
+@@ -603,6 +678,7 @@ static int sja1105_ptp_adjfine(struct ptp_clock_info *ptp, long scaled_ppm)
+ int __sja1105_ptp_adjtime(struct dsa_switch *ds, s64 delta)
+ {
+ 	struct sja1105_private *priv = ds->priv;
++	struct sja1105_ptp_data *ptp_data = &priv->ptp_data;
+ 	s64 ticks = ns_to_sja1105_ticks(delta);
+ 	int rc;
+ 
+@@ -614,6 +690,7 @@ int __sja1105_ptp_adjtime(struct dsa_switch *ds, s64 delta)
+ 
+ 	rc = sja1105_ptpclkval_write(priv, ticks, NULL);
+ 
++	ptp_data->last_op = SJA1105_PTP_CLOCKSTEP;
+ 	sja1105_tas_clockstep(priv->ds);
+ 
+ 	return rc;
+diff --git a/drivers/net/dsa/sja1105/sja1105_ptp.h b/drivers/net/dsa/sja1105/sja1105_ptp.h
+index 3bc201d36a67..e321f1db4269 100644
+--- a/drivers/net/dsa/sja1105/sja1105_ptp.h
++++ b/drivers/net/dsa/sja1105/sja1105_ptp.h
+@@ -34,6 +34,7 @@ struct sja1105_ptp_data {
+ 	struct ptp_clock_info caps;
+ 	struct ptp_clock *clock;
+ 	struct sja1105_ptp_cmd cmd;
++	enum sja1105_ptp_op last_op;
+ 	ktime_t last_ptpclkval_readout;
+ 	u64 last_ptpclkval_ticks;
+ 	/* Serializes all operations on the PTP hardware clock */
+diff --git a/include/trace/events/sja1105.h b/include/trace/events/sja1105.h
+index 2d9618cb804b..6967cab3228b 100644
+--- a/include/trace/events/sja1105.h
++++ b/include/trace/events/sja1105.h
+@@ -274,6 +274,23 @@ TRACE_EVENT(sja1105_ptpclkval_write,
+ 		  __entry->pre_ts, __entry->post_ts)
+ );
+ 
++TRACE_EVENT(sja1105_ptpclkval_discard,
++
++	TP_PROTO(s64 ticks),
++
++	TP_ARGS(ticks),
++
++	TP_STRUCT__entry(
++		__field(	s64,			ticks		)
++	),
++
++	TP_fast_assign(
++		__entry->ticks = ticks;
++	),
++
++	TP_printk("ticks=0x%016llx", __entry->ticks)
++);
++
+ TRACE_EVENT(sja1105_ptp_mode_set,
+ 
+ 	TP_PROTO(int mode),
+-- 
+2.17.1
+
