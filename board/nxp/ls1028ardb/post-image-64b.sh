@@ -8,16 +8,9 @@ source board/nxp/common/post-image.sh
 # $2 linux building directory
 # $3 buildroot top directory
 # $4 u-boot building directory
-# $5 BR2_PACKAGE_OPENIL_RCW_BIN
 main()
 {
-	local RCWFILE="$5"
-	local DESTRCW="rcw_1300.bin"
-
-	RCWFILE=${RCWFILE##*/}
-	RCWFILE=${RCWFILE%\"*}
-
-	cp ${BINARIES_DIR}/${RCWFILE} ${BINARIES_DIR}/${DESTRCW}
+	cd ${3}
 
 	# build the ramdisk rootfs
 	mkimage -A arm -T ramdisk -C gzip -d \

@@ -1477,6 +1477,7 @@ menu "Hardware handling"
 	source "package/neardal/Config.in"
 	source "package/owfs/Config.in"
 	source "package/pcsc-lite/Config.in"
+	source "package/tfa/Config.in"
 	source "package/tslib/Config.in"
 	source "package/urg/Config.in"
 	source "package/wiringpi/Config.in"
@@ -1718,6 +1719,10 @@ menu "Networking"
 	source "package/zeromq/Config.in"
 	source "package/zmqpp/Config.in"
 	source "package/zyre/Config.in"
+	source "package/mc-fw/Config.in"
+	source "package/mc-utils/Config.in"
+	source "package/eth-phy/Config.in"
+	source "package/restool/Config.in"
 endmenu
 
 menu "Other"
@@ -1807,6 +1812,7 @@ menu "Other"
 	source "package/libuv/Config.in"
 	source "package/lightning/Config.in"
 	source "package/linux-pam/Config.in"
+	source "package/ddr-phy/Config.in"
 if BR2_PACKAGE_LINUX_PAM
 comment "linux-pam plugins"
 	source "package/libpam-nfc/Config.in"
@@ -2060,6 +2066,7 @@ menu "Networking applications"
 	source "package/nfacct/Config.in"
 	source "package/nftables/Config.in"
 	source "package/nginx/Config.in"
+	source "package/nxp-servo/Config.in"
 if BR2_PACKAGE_NGINX
 menu "External nginx modules"
 	source "package/nginx-dav-ext/Config.in"
@@ -2351,4 +2358,51 @@ menu "Text editors and viewers"
 	source "package/vim/Config.in"
 endmenu
 
+menu "Edge-scale service"
+	source "package/qoriq-edgescale-eds/Config.in"
+	source "package/qoriq-eds-kubelet/Config.in"
+	source "package/qoriq-eds-bootstrap/Config.in"
+endmenu
+menu "Netconf Supporting"
+	source "package/pyang/Config.in"
+	source "package/libnetconf/Config.in"
+	source "package/netopeer/Config.in"
+	source "package/netopeer-client/Config.in"
+	source "package/netopeer2-cli/Config.in"
+	source "package/netopeer2-keystored/Config.in"
+	source "package/netopeer2-server/Config.in"
+	source "package/yang-cfginterfaces/Config.in"
+	source "package/yang-model/Config.in"
+	source "package/transapi/Config.in"
+	source "package/sysrepo-tsn/Config.in"
+endmenu
+menu "Time-Sensitive Networking tools"
+	source "package/tsntool/Config.in"
+endmenu
+menu "OPC UA tools"
+	source "package/libopen62541/Config.in"
+	source "package/opc-motor-status/Config.in"
+endmenu
+menu "Fman ucode"
+	source "package/fmucode/Config.in"
+endmenu
+menu "rcw image"
+	source "package/rcw/Config.in"
+endmenu
+menu "ppfe firmware"
+	source "package/ppfe/Config.in"
+endmenu
+menu "ppa firmware"
+	source "package/ppa/Config.in"
+endmenu
+menu "display port firmware"
+	source "package/dp/Config.in"
+endmenu
+menu "Baremetal"
+	source "package/bm-uboot/Config.in"
+	source "package/icc/Config.in"
+endmenu
+menu "felixacl"
+	source "package/felixacl/Config.in"
+endmenu
 endmenu
