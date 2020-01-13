@@ -92,10 +92,9 @@ diff --git a/drivers/net/dsa/sja1105/sja1105.h b/drivers/net/dsa/sja1105/sja1105
 index 3a5c8acb6e2a..dcfbd1be97d4 100644
 --- a/drivers/net/dsa/sja1105/sja1105.h
 +++ b/drivers/net/dsa/sja1105/sja1105.h
-@@ -123,6 +123,7 @@ enum sja1105_reset_reason {
+@@ -123,5 +123,6 @@ enum sja1105_reset_reason {
  	SJA1105_AGEING_TIME,
  	SJA1105_SCHEDULING,
- 	SJA1105_BEST_EFFORT_POLICING,
 +	SJA1105_HOSTPRIO,
  };
  
@@ -104,10 +103,9 @@ diff --git a/drivers/net/dsa/sja1105/sja1105_main.c b/drivers/net/dsa/sja1105/sj
 index 31f78c9aa5fc..3e9bd205d91a 100644
 --- a/drivers/net/dsa/sja1105/sja1105_main.c
 +++ b/drivers/net/dsa/sja1105/sja1105_main.c
-@@ -1351,6 +1351,7 @@ static const char * const sja1105_reset_reasons[] = {
+@@ -1351,5 +1351,6 @@ static const char * const sja1105_reset_reasons[] = {
  	[SJA1105_AGEING_TIME] = "Ageing time",
  	[SJA1105_SCHEDULING] = "Time-aware scheduling",
- 	[SJA1105_BEST_EFFORT_POLICING] = "Best-effort policing",
 +	[SJA1105_HOSTPRIO] = "Link-local traffic class",
  };
  

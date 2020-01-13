@@ -451,10 +451,11 @@ index 7efcce6ef05d..b72082e33d10 100644
  static int dsa_master_ethtool_setup(struct net_device *dev)
  {
  	struct dsa_port *cpu_dp = dev->dsa_ptr;
-@@ -249,6 +255,7 @@ static int dsa_master_ndo_setup(struct net_device *dev)
+@@ -249,7 +255,8 @@ static int dsa_master_ndo_setup(struct net_device *dev)
  		memcpy(ops, cpu_dp->orig_ndo_ops, sizeof(*ops));
  
  	ops->ndo_get_phys_port_name = dsa_master_get_phys_port_name;
+ 	ops->ndo_do_ioctl = dsa_master_ioctl;
 +	ops->ndo_fix_features = dsa_master_fix_features;
  
  	dev->netdev_ops  = ops;
