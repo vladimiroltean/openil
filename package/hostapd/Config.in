@@ -81,6 +81,11 @@ config BR2_PACKAGE_HOSTAPD_WPA3
 	help
 	  Enable WPA3 support including OWE, SAE, DPP
 
+config BR2_PACKAGE_HOSTAPD_WIRED
+	bool "Using wired driver"
+	help
+	  Using wired driver to support 802.1x on switch.
+
 config BR2_PACKAGE_HOSTAPD_VLAN
 	bool "Enable VLAN support"
 	default y

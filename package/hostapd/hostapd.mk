@@ -14,10 +14,14 @@ HOSTAPD_LICENSE = BSD-3-Clause
 HOSTAPD_LICENSE_FILES = README
 HOSTAPD_CONFIG_SET =
 
+ifeq ($(BR2_PACKAGE_HOSTAPD_WIRED),y)
+HOSTAPD_CONFIG_ENABLE =
+else
 HOSTAPD_CONFIG_ENABLE = \
 	CONFIG_INTERNAL_LIBTOMMATH \
 	CONFIG_DEBUG_FILE \
 	CONFIG_DEBUG_SYSLOG
+endif
 
 HOSTAPD_CONFIG_DISABLE =
 
@@ -116,8 +120,14 @@ HOSTAPD_LIBS += -lnl-3 -lm -lpthread
 endif
 endif
 
+ifeq ($(BR2_PACKAGE_HOSTAPD_WIRED),y)
+HOSTAPD_CONFIG_DEFCONFIG = wired.config
+else
+HOSTAPD_CONFIG_DEFCONFIG = defconfig
+endif
+
 define HOSTAPD_CONFIGURE_CMDS
-	cp $(@D)/hostapd/defconfig $(HOSTAPD_CONFIG)
+	cp $(@D)/hostapd/$(HOSTAPD_CONFIG_DEFCONFIG) $(HOSTAPD_CONFIG)
 	sed -i $(patsubst %,-e 's/^#\(%\)/\1/',$(HOSTAPD_CONFIG_ENABLE)) \
 		$(patsubst %,-e 's/^\(%\)/#\1/',$(HOSTAPD_CONFIG_DISABLE)) \
 		$(patsubst %,-e '1i%=y',$(HOSTAPD_CONFIG_SET)) \

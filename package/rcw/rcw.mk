@@ -1,50 +1,30 @@
 ################################################################################
 #
-# rcw
+# rcw image
 #
 ################################################################################
 
-RCW_VERSION = LSDK-18.12
+RCW_VERSION = LSDK-19.09
 RCW_SITE = https://source.codeaurora.org/external/qoriq/qoriq-components/rcw
 RCW_SITE_METHOD = git
-RCW_LICENSE = BSD-3-Clause
+RCW_LICENSE = BSD License
 RCW_LICENSE_FILES = LICENSE
 
-RCW_FILES = $(call qstrip,$(BR2_PACKAGE_HOST_RCW_CUSTOM_PATH))
+RCW_BIN = $(call qstrip,$(BR2_PACKAGE_RCW_BIN))
+RCW_PLATFORM = $(firstword $(subst /, ,$(RCW_BIN)))
 
-ifneq ($(RCW_FILES),)
-# Get the name of the custom rcw file from the custom list
-RCW_PROJECT = $(notdir $(filter %.rcw,$(RCW_FILES)))
-
-# Error if there are no or more than one .rcw file
-ifeq ($(BR_BUILDING),y)
-ifneq ($(words $(RCW_PROJECT)),1)
-$(error BR2_PACKAGE_HOST_RCW_CUSTOM_PATH must have exactly one .rcw file)
-endif
-endif
-
-define HOST_RCW_ADD_CUSTOM_RCW_FILES
-	mkdir -p $(@D)/custom_board/rcw
-	cp -f $(filter-out %.rcw,$(RCW_FILES)) $(@D)/custom_board
-	cp -f $(filter %.rcw,$(RCW_FILES)) $(@D)/custom_board/rcw
-endef
-HOST_RCW_POST_PATCH_HOOKS += HOST_RCW_ADD_CUSTOM_RCW_FILES
-
-define HOST_RCW_BUILD_CMDS
-	python $(@D)/rcw.py -i $(@D)/custom_board/rcw/$(RCW_PROJECT) -I $(@D)/custom_board -o $(@D)/PBL.bin
-endef
-
-define HOST_RCW_INSTALL_DELIVERY_FILE
-	$(INSTALL) -D -m 0644 $(@D)/PBL.bin $(BINARIES_DIR)/PBL.bin
+FIND = ls1028ardb
+ifeq ($(findstring $(FIND), $(BR2_TARGET_UBOOT_BOARDNAME)), $(FIND))
+define RCW_CONFIGURE_CMDS
+	patch -p1 -s -d $(@D) < $(TARGET_DIR)/../../package/rcw/0001-ls1028ardb-Enable-IIC5_PMUX-for-GPIO-function.patch.conditional;\
+	patch -p1 -s -d $(@D) < $(TARGET_DIR)/../../package/rcw/0002-ls1028ardb-Enable-CLK_OUT_PMUX-for-GPIO-function.patch.conditional;\
+	patch -p1 -s -d $(@D) < $(TARGET_DIR)/../../package/rcw/0003-Enable-SAI-for-LS1028ARDB-baremetal.patch.conditional
 endef
 endif
 
-# Copy source files and script into $(HOST_DIR)/share/rcw/ so a developer
-# could use a post image or SDK to build/install PBL files.
-define HOST_RCW_INSTALL_CMDS
-	mkdir -p  $(HOST_DIR)/share/rcw
-	cp -a $(@D)/* $(HOST_DIR)/share/rcw
-	$(HOST_RCW_INSTALL_DELIVERY_FILE)
+define RCW_BUILD_CMDS
+	cd $(@D)/$(RCW_PLATFORM) && $(MAKE); \
+	cp -f $(@D)/$(RCW_BIN) $(BINARIES_DIR);
 endef
 
-$(eval $(host-generic-package))
+$(eval $(generic-package))
