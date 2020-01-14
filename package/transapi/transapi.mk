@@ -73,11 +73,6 @@ define TRANSAPI_CREATE_CONFIGURE
 		--search-path $(@D)/$(BRIDGE_SRC_NAME)/ \
 		transapi;
 
-        cd $(TOPDIR); \
-        $(APPLY_PATCHES) $(@D) package/transapi\
-		0001-modify-configure.in-to-change-parameters-to-fit-the-.patch.conditional; \
-        $(APPLY_PATCHES) $(@D) package/transapi\
-		0002-modify-Makefile.in-to-change-the-project.patch.conditional; \
         cd $(@D); \
         $(TARGET_MAKE_ENV) $(TRANSAPI_CONF_ENV) $(HOST_DIR)/usr/bin/autoreconf --force --install
 endef

@@ -26,8 +26,6 @@ BR2_TARGET_GENERIC_ISSUE="Welcome to OpenIL"
 # Linux headers same as kernel
 BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_4_14=y
 
-BR2_GLOBAL_PATCH_DIR="board/nxp/common/patches/"
-
 # toolchain
 BR2_TOOLCHAIN_EXTERNAL=y
 
@@ -59,6 +57,8 @@ BR2_LINUX_KERNEL_IMAGE_TARGET_CUSTOM=y
 BR2_LINUX_KERNEL_IMAGE_TARGET_NAME="Image"
 # Serial port config
 BR2_TARGET_GENERIC_GETTY=n
+
+BR2_GLOBAL_PATCH_DIR="board/nxp/ls1028ardb/patches/"
 
 # required tools to create the microSD image
 BR2_PACKAGE_HOST_DOSFSTOOLS=y
