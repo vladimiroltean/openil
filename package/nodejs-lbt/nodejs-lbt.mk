@@ -1,18 +1,26 @@
-NODEJS_LBT_VERSION       := 0.2.0
-NODEJS_LBT_SITE          := package/nodejs-lbt/src
-NODEJS_LBT_SITE_METHOD   := local
-NODEJS_LBT_LICENSE       := MIT
-NODEJS_LBT_LICENSE_FILES := LICENSE
-NODEJS_LBT_DEPENDENCIES  := nodejs perl-feedgnuplot prl
-NODEJS_LBT_START_AT_BOOT := false
+################################################################################
+#
+# nodejs-lbt
+#
+################################################################################
 
-DESTDIR := $(TARGET_DIR)/usr/lib/node_modules/lbt
+NODEJS_LBT_VERSION = 0.2.0
+NODEJS_LBT_SITE = package/nodejs-lbt/src
+NODEJS_LBT_SITE_METHOD = local
+NODEJS_LBT_LICENSE = MIT
+NODEJS_LBT_LICENSE_FILES = LICENSE
+NODEJS_LBT_DEPENDENCIES = nodejs perl-feedgnuplot prl
 
-ifeq ($(NODEJS_LBT_START_AT_BOOT),true)
-define NODEJS_LBT_INSTALL_INIT_SCRIPT
-	install -Dm0755 $(@D)/S95lbt $(TARGET_DIR)/etc/init.d/S95lbt
+DESTDIR = $(TARGET_DIR)/usr/lib/node_modules/lbt
+
+define NODEJS_LBT_INSTALL_INIT_SYSV
+	$(INSTALL) -m 755 -D $(@D)/S95lbt $(TARGET_DIR)/etc/init.d/S95lbt
 endef
-endif
+
+define NODEJS_LBT_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -m 644 -D $(@D)/lbt.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/lbt.service
+endef
 
 define NODEJS_LBT_INSTALL_TARGET_CMDS
 	rm -rf $(DESTDIR)
@@ -24,8 +32,6 @@ define NODEJS_LBT_INSTALL_TARGET_CMDS
 	# its dependencies using npm
 	install -Dm0644 $(@D)/package.json $(DESTDIR)/package.json
 	(cd $(DESTDIR); $(NPM) install --only=production)
-	$(NODEJS_LBT_INSTALL_INIT_SCRIPT)
 endef
 
 $(eval $(generic-package))
-

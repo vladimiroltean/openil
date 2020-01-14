@@ -5,4 +5,3 @@ config BR2_PACKAGE_PERL_LIST_MOREUTILS
 	  functionality on lists which is not going to go into List::Util.
 
 	  https://metacpan.org/release/List-MoreUtils
-

@@ -1,0 +1,10 @@
+[Unit]
+Description=Latency and Bandwidth Tester
+After=network.target
+
+[Service]
+ExecStart=/usr/lib/node_modules/lbt/server.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

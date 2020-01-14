@@ -11,4 +11,3 @@ config BR2_PACKAGE_PERL_FEEDGNUPLOT
 
 comment "perl-feedgnuplot needs a toolchain w/ dynamic library"
 	depends on BR2_STATIC_LIBS
-
