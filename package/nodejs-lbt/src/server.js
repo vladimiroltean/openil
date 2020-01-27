@@ -418,10 +418,6 @@ function startFlows(flows, flowType) {
     readline.createInterface({ input: plotter.stderr })
     .on("line", (line) => {
         console.log("feedgnuplot stderr: %s", line);
-        /* Some warning messages are not harmful */
-        if (!line.includes("adjusting to")) {
-            stopTraffic();
-        }
     });
     plotter.on("exit", (code) => {
         console.log("feedgnuplot process exited with code %s", code);
@@ -447,6 +443,7 @@ function stopTraffic(error) {
                 if (typeof(f.srcSSHConn) != "undefined") { f.srcSSHConn.end() };
                 if (typeof(f.dstSSHConn) != "undefined") { f.dstSSHConn.end() };
             });
+            console.log("Closing plotter stdin");
             state.plotter[flowType].stdin.end();
         }
     });
