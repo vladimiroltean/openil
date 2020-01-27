@@ -28,6 +28,8 @@ define NODEJS_LBT_INSTALL_TARGET_CMDS
 	install -Dm0644 $(@D)/client.js   $(DESTDIR)/client.js
 	install -Dm0644 $(@D)/index.html  $(DESTDIR)/index.html
 	install -Dm0644 $(@D)/config.json $(DESTDIR)/config.json
+	install -Dm0644 $(@D)/id_rsa      $(DESTDIR)/id_rsa
+	install -Dm0644 $(@D)/id_rsa.pub  $(DESTDIR)/id_rsa.pub
 	# Put package.json in place so we can retrieve
 	# its dependencies using npm
 	install -Dm0644 $(@D)/package.json $(DESTDIR)/package.json
