@@ -93,7 +93,7 @@ all:
 
 # Set and export the version string
 export BR2_VERSION := 2020.02-git
-export BR2_OPENIL_VERSION := 1.6-community
+export BR2_OPENIL_VERSION := 1.7-community
 # Actual time the release is cut (for reproducible builds)
 BR2_VERSION_EPOCH = 1575236000
 
