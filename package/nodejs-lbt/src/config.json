@@ -10,7 +10,7 @@
 		"xlen": "60",
 		"binwidth": "0.01",
 		"measurement": "pit",
-		"measurementInterface": "eth2",
+		"measurementInterface": "eth0.100",
 		"title": "Ping Packet Inter-arrival Time"
 	},
 	"iperf": {
