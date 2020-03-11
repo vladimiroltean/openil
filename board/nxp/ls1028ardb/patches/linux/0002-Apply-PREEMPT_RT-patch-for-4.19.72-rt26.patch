@@ -1,7 +1,7 @@
-From 45732088279d5172b5d91aad3f28c19f3848ffc2 Mon Sep 17 00:00:00 2001
+From 427f6a20ccc0a6a142d8c822b0b0c3b1748e7fa4 Mon Sep 17 00:00:00 2001
 From: Vladimir Oltean <olteanv@gmail.com>
 Date: Sun, 20 Oct 2019 00:29:03 +0300
-Subject: [PATCH] Apply PREEMPT_RT patch for 4.19.72-rt26
+Subject: [PATCH 02/63] Apply PREEMPT_RT patch for 4.19.72-rt26
 
 Source:
 http://cdn.kernel.org/pub/linux/kernel/projects/rt/4.19/

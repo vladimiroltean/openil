@@ -1,0 +1,64 @@
+From e797a51574ff6e8716bb2d73baa0850ae0069650 Mon Sep 17 00:00:00 2001
+From: Heiner Kallweit <hkallweit1@gmail.com>
+Date: Sun, 5 May 2019 19:03:51 +0200
+Subject: [PATCH 61/63] net: phy: improve pause mode reporting in
+ phy_print_status
+
+So far we report symmetric pause only, and we don't consider the local
+pause capabilities. Let's properly consider local and remote
+capabilities, and report also asymmetric pause.
+
+Signed-off-by: Heiner Kallweit <hkallweit1@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+Signed-off-by: Vladimir Oltean <vladimir.oltean@nxp.com>
+---
+ drivers/net/phy/phy.c | 26 +++++++++++++++++++++++++-
+ 1 file changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 8386de62ebd0..ffe6026c0649 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -63,6 +63,30 @@ static const char *phy_state_to_str(enum phy_state st)
+ }
+ 
+ 
++static const char *phy_pause_str(struct phy_device *phydev)
++{
++	bool local_pause, local_asym_pause;
++
++	if (phydev->autoneg == AUTONEG_DISABLE)
++		goto no_pause;
++
++	local_pause = phydev->advertising & ADVERTISED_Pause;
++	local_asym_pause = phydev->advertising & ADVERTISED_Asym_Pause;
++
++	if (local_pause && phydev->pause)
++		return "rx/tx";
++
++	if (local_asym_pause && phydev->asym_pause) {
++		if (local_pause)
++			return "rx";
++		if (phydev->pause)
++			return "tx";
++	}
++
++no_pause:
++	return "off";
++}
++
+ /**
+  * phy_print_status - Convenience function to print out the current phy status
+  * @phydev: the phy_device struct
+@@ -74,7 +98,7 @@ void phy_print_status(struct phy_device *phydev)
+ 			"Link is Up - %s/%s - flow control %s\n",
+ 			phy_speed_to_str(phydev->speed),
+ 			phy_duplex_to_str(phydev->duplex),
+-			phydev->pause ? "rx/tx" : "off");
++			phy_pause_str(phydev));
+ 	} else	{
+ 		netdev_info(phydev->attached_dev, "Link is Down\n");
+ 	}
+-- 
+2.17.1
+

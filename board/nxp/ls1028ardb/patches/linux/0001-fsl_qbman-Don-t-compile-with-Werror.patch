@@ -1,7 +1,7 @@
-From 0aef896148a68408d907bf47dc37ed62fbe0b905 Mon Sep 17 00:00:00 2001
+From 60e2af248b701f9c6d4f019e15909c459b39700f Mon Sep 17 00:00:00 2001
 From: Vladimir Oltean <olteanv@gmail.com>
 Date: Fri, 20 Sep 2019 15:13:59 +0300
-Subject: [PATCH] fsl_qbman: Don't compile with -Werror
+Subject: [PATCH 01/63] fsl_qbman: Don't compile with -Werror
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -50,5 +50,5 @@ index 777d7d34e4f8..37263600f10f 100644
  obj-$(CONFIG_FSL_SDK_DPA)		+= dpa_alloc.o
  obj-$(CONFIG_FSL_SDK_DPA)	+= qbman_driver.o
 -- 
-2.7.4
+2.17.1
 
