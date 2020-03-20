@@ -1,0 +1,24 @@
+From b673eaf76a1fc38cc50e02d5638ee9592928c4af Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <olteanv@gmail.com>
+Date: Sun, 9 Feb 2020 13:51:47 +0200
+Subject: [PATCH] Add ls1028atsn symlink to ls1028ardb
+
+Required for TFA to build with U-Boot ls1028atsn_tfa_defconfig.
+
+Signed-off-by: Vladimir Oltean <olteanv@gmail.com>
+---
+ plat/nxp/soc-ls1028/ls1028atsn | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 120000 plat/nxp/soc-ls1028/ls1028atsn
+
+diff --git a/plat/nxp/soc-ls1028/ls1028atsn b/plat/nxp/soc-ls1028/ls1028atsn
+new file mode 120000
+index 000000000000..b8aa23a9e3e4
+--- /dev/null
++++ b/plat/nxp/soc-ls1028/ls1028atsn
+@@ -0,0 +1 @@
++ls1028ardb
+\ No newline at end of file
+-- 
+2.17.1
+

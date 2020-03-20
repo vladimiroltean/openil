@@ -1,0 +1,84 @@
+From 425d61fb08eca04c7a887a27a57af434d461abc8 Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <olteanv@gmail.com>
+Date: Sat, 8 Feb 2020 21:38:06 +0200
+Subject: [PATCH] plat: nxp: ls1028ardb: Update DDR timings for FII LS1028A
+ custom board
+
+Uses a K4A8G165WB DDR chip.
+
+Signed-off-by: Vladimir Oltean <olteanv@gmail.com>
+---
+ plat/nxp/soc-ls1028/ls1028ardb/ddr_init.c | 33 ++++++++++++-----------
+ 1 file changed, 17 insertions(+), 16 deletions(-)
+
+diff --git a/plat/nxp/soc-ls1028/ls1028ardb/ddr_init.c b/plat/nxp/soc-ls1028/ls1028ardb/ddr_init.c
+index 80928fd9a91d..35cdc8440465 100644
+--- a/plat/nxp/soc-ls1028/ls1028ardb/ddr_init.c
++++ b/plat/nxp/soc-ls1028/ls1028ardb/ddr_init.c
+@@ -99,46 +99,47 @@ int ddr_board_options(struct ddr_info *priv)
+ 	return 0;
+ }
+ 
+-/* DDR model number:  MT40A1G8SA-075:E */
++/* DDR model number: K4A8G165WB */
+ struct dimm_params ddr_raw_timing = {
+ 	.n_ranks = 1,
+-	.rank_density = 4294967296u,
+-	.capacity = 4294967296u,
++	.rank_density = 2147483648u,
++	.capacity = 2147483648u,
+ 	.primary_sdram_width = 32,
+-	.ec_sdram_width = 4,
++	.ec_sdram_width = 0,
+ 	.rdimm = 0,
+ 	.mirrored_dimm = 0,
+ 	.n_row_addr = 16,
+ 	.n_col_addr = 10,
+-	.bank_group_bits = 2,
+-	.edc_config = 2,
++	.bank_addr_bits = 2,
++	.bank_group_bits = 1,
++	.edc_config = 0,
+ 	.burst_lengths_bitmask = 0x0c,
+-	.tckmin_x_ps = 750,
+-	.tckmax_ps = 1900,
++	.tckmin_x_ps = 833,
++	.tckmax_ps = 2000,
+ 	.caslat_x = 0x0001FFE00,
+ 	.taa_ps = 13500,
+ 	.trcd_ps = 13500,
+ 	.trp_ps = 13500,
+ 	.tras_ps = 32000,
+-	.trc_ps = 45500,
++	.trc_ps = 48500,
+ 	.twr_ps = 15000,
+ 	.trfc1_ps = 350000,
+ 	.trfc2_ps = 260000,
+ 	.trfc4_ps = 160000,
+ 	.tfaw_ps = 21000,
+-	.trrds_ps = 3000,
++	.trrds_ps = 3300,
+ 	.trrdl_ps = 4900,
+-	.tccdl_ps = 5000,
++	.tccdl_ps = 6000,
+ 	.refresh_rate_ps = 7800000,
+-	.dq_mapping[0] = 0x16,
++	.dq_mapping[0] = 0x15,
+ 	.dq_mapping[1] = 0x36,
+ 	.dq_mapping[2] = 0x16,
+ 	.dq_mapping[3] = 0x36,
+-	.dq_mapping[4] = 0x16,
++	.dq_mapping[4] = 0x0b,
+ 	.dq_mapping[5] = 0x36,
+-	.dq_mapping[6] = 0x16,
+-	.dq_mapping[7] = 0x36,
+-	.dq_mapping[8] = 0x16,
++	.dq_mapping[6] = 0x17,
++	.dq_mapping[7] = 0x35,
++	.dq_mapping[8] = 0x0,
+ 	.dq_mapping[9] = 0x0,
+ 	.dq_mapping[10] = 0x0,
+ 	.dq_mapping[11] = 0x0,
+-- 
+2.17.1
+
