@@ -1,0 +1,96 @@
+From bc644fb7a364e5e977187fcdfccdc87b2e6387e5 Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <vladimir.oltean@nxp.com>
+Date: Sat, 9 Nov 2019 15:02:50 +0200
+Subject: [PATCH 08/16] net: mscc: ocelot: change prototypes of hwtstamping
+ ioctls
+
+This is needed in order to present a simpler prototype to the DSA
+front-end of ocelot.
+
+Signed-off-by: Vladimir Oltean <vladimir.oltean@nxp.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/mscc/ocelot.c | 31 ++++++++++++++++++------------
+ 1 file changed, 19 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/ethernet/mscc/ocelot.c b/drivers/net/ethernet/mscc/ocelot.c
+index aa6028ca6357..a4fc08be2148 100644
+--- a/drivers/net/ethernet/mscc/ocelot.c
++++ b/drivers/net/ethernet/mscc/ocelot.c
+@@ -1015,14 +1015,19 @@ static int ocelot_set_features(struct net_device *dev,
+ 	return 0;
+ }
+ 
+-static int ocelot_hwstamp_get(struct ocelot_port *port, struct ifreq *ifr)
++static int ocelot_hwstamp_get(struct ocelot *ocelot, int port,
++			      struct ifreq *ifr)
+ {
+-	return copy_to_user(ifr->ifr_data, &port->hwtstamp_config,
+-			    sizeof(port->hwtstamp_config)) ? -EFAULT : 0;
++	struct ocelot_port *ocelot_port = ocelot->ports[port];
++
++	return copy_to_user(ifr->ifr_data, &ocelot_port->hwtstamp_config,
++			    sizeof(ocelot_port->hwtstamp_config)) ? -EFAULT : 0;
+ }
+ 
+-static int ocelot_hwstamp_set(struct ocelot_port *port, struct ifreq *ifr)
++static int ocelot_hwstamp_set(struct ocelot *ocelot, int port,
++			      struct ifreq *ifr)
+ {
++	struct ocelot_port *ocelot_port = ocelot->ports[port];
+ 	struct hwtstamp_config cfg;
+ 
+ 	if (copy_from_user(&cfg, ifr->ifr_data, sizeof(cfg)))
+@@ -1034,10 +1039,10 @@ static int ocelot_hwstamp_set(struct ocelot_port *port, struct ifreq *ifr)
+ 
+ 	switch (cfg.tx_type) {
+ 	case HWTSTAMP_TX_ON:
+-		port->tx_tstamp = true;
++		ocelot_port->tx_tstamp = true;
+ 		break;
+ 	case HWTSTAMP_TX_OFF:
+-		port->tx_tstamp = false;
++		ocelot_port->tx_tstamp = false;
+ 		break;
+ 	default:
+ 		return -ERANGE;
+@@ -1045,28 +1050,30 @@ static int ocelot_hwstamp_set(struct ocelot_port *port, struct ifreq *ifr)
+ 
+ 	switch (cfg.rx_filter) {
+ 	case HWTSTAMP_FILTER_NONE:
+-		port->rx_tstamp = false;
++		ocelot_port->rx_tstamp = false;
+ 		break;
+ 	default:
+-		port->rx_tstamp = true;
++		ocelot_port->rx_tstamp = true;
+ 		cfg.rx_filter = HWTSTAMP_FILTER_ALL;
+ 		break;
+ 	}
+ 
+ 	/* Commit back the result & save it */
+-	memcpy(&port->hwtstamp_config, &cfg, sizeof(cfg));
++	memcpy(&ocelot_port->hwtstamp_config, &cfg, sizeof(cfg));
+ 	return copy_to_user(ifr->ifr_data, &cfg, sizeof(cfg)) ? -EFAULT : 0;
+ }
+ 
+ static int ocelot_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+ {
+-	struct ocelot_port *port = netdev_priv(dev);
++	struct ocelot_port *ocelot_port = netdev_priv(dev);
++	struct ocelot *ocelot = ocelot_port->ocelot;
++	int port = ocelot_port->chip_port;
+ 
+ 	switch (cmd) {
+ 	case SIOCSHWTSTAMP:
+-		return ocelot_hwstamp_set(port, ifr);
++		return ocelot_hwstamp_set(ocelot, port, ifr);
+ 	case SIOCGHWTSTAMP:
+-		return ocelot_hwstamp_get(port, ifr);
++		return ocelot_hwstamp_get(ocelot, port, ifr);
+ 	default:
+ 		return -EOPNOTSUPP;
+ 	}
+-- 
+2.17.1
+

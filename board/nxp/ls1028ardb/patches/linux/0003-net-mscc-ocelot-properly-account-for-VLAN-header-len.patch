@@ -1,0 +1,91 @@
+From eea94aab250499dfc9b540d9663599655b626768 Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <olteanv@gmail.com>
+Date: Mon, 9 Mar 2020 22:01:36 +0200
+Subject: [PATCH 03/16] net: mscc: ocelot: properly account for VLAN header
+ length when setting MTU
+
+What the driver writes into MAC_MAXLEN_CFG does not actually represent
+VLAN_ETH_FRAME_LEN but instead ETH_FRAME_LEN + ETH_FCS_LEN. Yes they are
+numerically equal, but the difference is important, as the switch treats
+VLAN-tagged traffic specially and knows to increase the maximum accepted
+frame size automatically. So it is always wrong to account for VLAN in
+the MAC_MAXLEN_CFG register.
+
+Unconditionally increase the maximum allowed frame size for
+double-tagged traffic. Accounting for the additional length does not
+mean that the other VLAN membership checks aren't performed, so there's
+no harm done.
+
+Yes, we are still abusing the MTU name for configuring the MRU. There is
+no support for configuring the MRU on an interface at the moment.
+
+Fixes: a556c76adc05 ("net: mscc: Add initial Ocelot switch support")
+Fixes: fa914e9c4d94 ("net: mscc: ocelot: create a helper for changing the port MTU")
+Signed-off-by: Vladimir Oltean <vladimir.oltean@nxp.com>
+---
+ drivers/net/ethernet/mscc/ocelot.c     | 12 +++++++-----
+ drivers/net/ethernet/mscc/ocelot_dev.h |  2 +-
+ 2 files changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/ethernet/mscc/ocelot.c b/drivers/net/ethernet/mscc/ocelot.c
+index 5854a9fb551a..f66d26ffd6b4 100644
+--- a/drivers/net/ethernet/mscc/ocelot.c
++++ b/drivers/net/ethernet/mscc/ocelot.c
+@@ -366,6 +366,7 @@ static u16 ocelot_wm_enc(u16 value)
+ static void ocelot_port_adjust_link(struct net_device *dev)
+ {
+ 	struct ocelot_port *port = netdev_priv(dev);
++	int maxlen = ETH_FRAME_LEN + ETH_FCS_LEN;
+ 	struct ocelot *ocelot = port->ocelot;
+ 	u8 p = port->chip_port;
+ 	int speed, atop_wm, mode = 0;
+@@ -400,9 +401,10 @@ static void ocelot_port_adjust_link(struct net_device *dev)
+ 		ocelot->port_pcs_init(port);
+ 
+ 	/* Set Max Length and maximum tags allowed */
+-	ocelot_port_writel(port, VLAN_ETH_FRAME_LEN, DEV_MAC_MAXLEN_CFG);
++	ocelot_port_writel(port, maxlen, DEV_MAC_MAXLEN_CFG);
+ 	ocelot_port_writel(port, DEV_MAC_TAGS_CFG_TAG_ID(ETH_P_8021AD) |
+ 			   DEV_MAC_TAGS_CFG_VLAN_AWR_ENA |
++			   DEV_MAC_TAGS_CFG_VLAN_DBL_AWR_ENA |
+ 			   DEV_MAC_TAGS_CFG_VLAN_LEN_AWR_ENA,
+ 			   DEV_MAC_TAGS_CFG);
+ 
+@@ -424,8 +426,8 @@ static void ocelot_port_adjust_link(struct net_device *dev)
+ 			 ANA_PFC_PFC_CFG, p);
+ 
+ 	/* Set Pause WM hysteresis
+-	 * 152 = 6 * VLAN_ETH_FRAME_LEN / OCELOT_BUFFER_CELL_SZ
+-	 * 101 = 4 * VLAN_ETH_FRAME_LEN / OCELOT_BUFFER_CELL_SZ
++	 * 152 = 6 * maxlen / OCELOT_BUFFER_CELL_SZ
++	 * 101 = 4 * maxlen / OCELOT_BUFFER_CELL_SZ
+ 	 */
+ 	ocelot_write_rix(ocelot, SYS_PAUSE_CFG_PAUSE_ENA |
+ 			 SYS_PAUSE_CFG_PAUSE_STOP(101) |
+@@ -447,8 +449,8 @@ static void ocelot_port_adjust_link(struct net_device *dev)
+ 	ocelot_write_rix(ocelot, 0, ANA_POL_FLOWC, p);
+ 
+ 	/* Tail dropping watermark */
+-	atop_wm = (ocelot->shared_queue_sz - 9 * VLAN_ETH_FRAME_LEN) / OCELOT_BUFFER_CELL_SZ;
+-	ocelot_write_rix(ocelot, ocelot_wm_enc(9 * VLAN_ETH_FRAME_LEN),
++	atop_wm = (ocelot->shared_queue_sz - 9 * maxlen) / OCELOT_BUFFER_CELL_SZ;
++	ocelot_write_rix(ocelot, ocelot_wm_enc(9 * maxlen),
+ 			 SYS_ATOP, p);
+ 	ocelot_write(ocelot, ocelot_wm_enc(atop_wm), SYS_ATOP_TOT_CFG);
+ }
+diff --git a/drivers/net/ethernet/mscc/ocelot_dev.h b/drivers/net/ethernet/mscc/ocelot_dev.h
+index 0a50d53bbd3f..7c08437061fc 100644
+--- a/drivers/net/ethernet/mscc/ocelot_dev.h
++++ b/drivers/net/ethernet/mscc/ocelot_dev.h
+@@ -74,7 +74,7 @@
+ #define DEV_MAC_TAGS_CFG_TAG_ID_M                         GENMASK(31, 16)
+ #define DEV_MAC_TAGS_CFG_TAG_ID_X(x)                      (((x) & GENMASK(31, 16)) >> 16)
+ #define DEV_MAC_TAGS_CFG_VLAN_LEN_AWR_ENA                 BIT(2)
+-#define DEV_MAC_TAGS_CFG_PB_ENA                           BIT(1)
++#define DEV_MAC_TAGS_CFG_VLAN_DBL_AWR_ENA                 BIT(1)
+ #define DEV_MAC_TAGS_CFG_VLAN_AWR_ENA                     BIT(0)
+ 
+ #define DEV_MAC_ADV_CHK_CFG                               0x2c
+-- 
+2.17.1
+

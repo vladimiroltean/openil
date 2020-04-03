@@ -1,0 +1,198 @@
+From f4aeeb6c9a9ff08de3a57700b0ce71c96080ffb2 Mon Sep 17 00:00:00 2001
+From: Vladimir Oltean <vladimir.oltean@nxp.com>
+Date: Wed, 11 Mar 2020 00:16:11 +0200
+Subject: [PATCH 15/16] net: mscc: ocelot: allow configuration of flow control
+
+This makes flow control advertisement on the attached PHY configurable
+via ethtool:
+
+ethtool --pause swp3 autoneg on rx on tx on
+
+and also programs the MAC with the result of pause frame negotiation.
+
+Signed-off-by: Vladimir Oltean <vladimir.oltean@nxp.com>
+---
+ drivers/net/ethernet/mscc/ocelot.c | 127 +++++++++++++++++++++++++++--
+ drivers/net/ethernet/mscc/ocelot.h |   4 +
+ 2 files changed, 125 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/ethernet/mscc/ocelot.c b/drivers/net/ethernet/mscc/ocelot.c
+index 15e086183538..918ef5e59a7c 100644
+--- a/drivers/net/ethernet/mscc/ocelot.c
++++ b/drivers/net/ethernet/mscc/ocelot.c
+@@ -412,10 +412,31 @@ static u16 ocelot_wm_enc(u16 value)
+ 	return value;
+ }
+ 
++static void ocelot_set_flow_control(struct ocelot *ocelot, int port,
++				    bool rx, bool tx)
++{
++	u32 mac_fc_cfg = ocelot_read_rix(ocelot, SYS_MAC_FC_CFG, port);
++
++	/* Preserve link speed from ocelot_port_adjust_link */
++	mac_fc_cfg &= SYS_MAC_FC_CFG_FC_LINK_SPEED_M;
++
++	mac_fc_cfg |= SYS_MAC_FC_CFG_PAUSE_VAL_CFG(0xffff) |
++		      SYS_MAC_FC_CFG_ZERO_PAUSE_ENA |
++		      SYS_MAC_FC_CFG_FC_LATENCY_CFG(0x7);
++
++	if (tx)
++		mac_fc_cfg |= SYS_MAC_FC_CFG_TX_FC_ENA;
++	if (rx)
++		mac_fc_cfg |= SYS_MAC_FC_CFG_RX_FC_ENA;
++
++	ocelot_write_rix(ocelot, mac_fc_cfg, SYS_MAC_FC_CFG, port);
++}
++
+ static void ocelot_adjust_link(struct ocelot *ocelot, int p,
+ 			       struct phy_device *phydev)
+ {
+ 	struct ocelot_port *port = ocelot->ports[p];
++	bool rx_pause, tx_pause;
+ 	int speed, mode;
+ 
+ 	speed = OCELOT_SPEED_1000;
+@@ -453,12 +474,35 @@ static void ocelot_adjust_link(struct ocelot *ocelot, int p,
+ 			 QSYS_SWITCH_PORT_MODE, p);
+ 
+ 	/* Flow control */
+-	ocelot_write_rix(ocelot, SYS_MAC_FC_CFG_PAUSE_VAL_CFG(0xffff) |
+-			 SYS_MAC_FC_CFG_RX_FC_ENA | SYS_MAC_FC_CFG_TX_FC_ENA |
+-			 SYS_MAC_FC_CFG_ZERO_PAUSE_ENA |
+-			 SYS_MAC_FC_CFG_FC_LATENCY_CFG(0x7) |
+-			 SYS_MAC_FC_CFG_FC_LINK_SPEED(speed),
+-			 SYS_MAC_FC_CFG, p);
++	ocelot_rmw_rix(ocelot, SYS_MAC_FC_CFG_FC_LINK_SPEED(speed),
++		       SYS_MAC_FC_CFG_FC_LINK_SPEED_M,
++		       SYS_MAC_FC_CFG, p);
++
++	if (!port->pause_aneg_en) {
++		rx_pause = port->rx_pause_en;
++		tx_pause = port->tx_pause_en;
++	} else {
++		struct phy_device *phydev = port->phy;
++		u16 lcl_adv = 0, rmt_adv = 0;
++		u8 flowctrl;
++
++		/* get link partner capabilities */
++		if (phydev->pause)
++			rmt_adv |= LPA_PAUSE_CAP;
++		if (phydev->asym_pause)
++			rmt_adv |= LPA_PAUSE_ASYM;
++
++		if (phydev->advertising & ADVERTISED_Pause)
++			lcl_adv |= ADVERTISE_PAUSE_CAP;
++		if (phydev->advertising & ADVERTISED_Asym_Pause)
++			lcl_adv |= ADVERTISE_PAUSE_ASYM;
++
++		flowctrl = mii_resolve_flowctrl_fdx(lcl_adv, rmt_adv);
++		tx_pause = !!(flowctrl & FLOW_CTRL_TX);
++		rx_pause = !!(flowctrl & FLOW_CTRL_RX);
++	}
++
++	ocelot_set_flow_control(ocelot, p, rx_pause, tx_pause);
+ 	ocelot_write_rix(ocelot, 0, ANA_POL_FLOWC, p);
+ }
+ 
+@@ -1159,12 +1203,83 @@ static int ocelot_get_ts_info(struct net_device *dev,
+ 	return 0;
+ }
+ 
++static void ocelot_get_pauseparam(struct net_device *dev,
++				  struct ethtool_pauseparam *epause)
++{
++	struct ocelot_port *port = netdev_priv(dev);
++
++	epause->autoneg = !!port->pause_aneg_en;
++	epause->rx_pause = !!port->rx_pause_en;
++	epause->tx_pause = !!port->tx_pause_en;
++}
++
++static int ocelot_set_pauseparam(struct net_device *dev,
++				 struct ethtool_pauseparam *epause)
++{
++	struct ocelot_port *port = netdev_priv(dev);
++	struct phy_device *phydev = dev->phydev;
++	struct ocelot *ocelot = port->ocelot;
++	int p = port->chip_port;
++	u32 oldadv, newadv;
++
++	if (!phydev)
++		return -ENODEV;
++
++	if (!(phydev->supported & SUPPORTED_Pause) ||
++	    (!(phydev->supported & SUPPORTED_Asym_Pause) &&
++	     (epause->rx_pause != epause->tx_pause)))
++		return -EINVAL;
++
++	port->rx_pause_en = port->tx_pause_en = 0;
++	if (epause->rx_pause) {
++		port->rx_pause_en = 1;
++
++		if (epause->tx_pause) {
++			port->tx_pause_en = 1;
++			/* FLOW_CTRL_RX & TX */
++			newadv = ADVERTISED_Pause;
++		} else { /* FLOW_CTLR_RX */
++			newadv = ADVERTISED_Pause | ADVERTISED_Asym_Pause;
++		}
++	} else if (epause->tx_pause) {
++		port->tx_pause_en = 1;
++		/* FLOW_CTLR_TX */
++		newadv = ADVERTISED_Asym_Pause;
++	} else {
++		newadv = 0;
++	}
++
++	port->pause_aneg_en = !!(epause->autoneg);
++
++	oldadv = phydev->advertising &
++		(ADVERTISED_Pause | ADVERTISED_Asym_Pause);
++	if (oldadv != newadv) {
++		phydev->advertising &=
++			~(ADVERTISED_Pause | ADVERTISED_Asym_Pause);
++		phydev->advertising |= newadv;
++		if (phydev->autoneg)
++			/* inform link partner of our
++			 * new flow ctrl settings
++			 */
++			return phy_start_aneg(phydev);
++
++		if (!epause->autoneg)
++			ocelot_set_flow_control(ocelot, p,
++						port->rx_pause_en,
++						port->tx_pause_en);
++	}
++
++	return 0;
++}
++
+ static const struct ethtool_ops ocelot_ethtool_ops = {
+ 	.get_strings		= ocelot_get_strings,
+ 	.get_ethtool_stats	= ocelot_get_ethtool_stats,
+ 	.get_sset_count		= ocelot_get_sset_count,
+ 	.get_link_ksettings	= phy_ethtool_get_link_ksettings,
+ 	.set_link_ksettings	= phy_ethtool_set_link_ksettings,
++	.get_pauseparam		= ocelot_get_pauseparam,
++	.set_pauseparam		= ocelot_set_pauseparam,
+ 	.get_ts_info		= ocelot_get_ts_info,
+ };
+ 
+diff --git a/drivers/net/ethernet/mscc/ocelot.h b/drivers/net/ethernet/mscc/ocelot.h
+index 4bfcbb21df55..2986b1d0db19 100644
+--- a/drivers/net/ethernet/mscc/ocelot.h
++++ b/drivers/net/ethernet/mscc/ocelot.h
+@@ -615,6 +615,10 @@ struct ocelot_port {
+ 	bool rx_tstamp;
+ 	u8 tstamp_id;
+ 	struct sk_buff_head tx_skbs;
++
++	bool rx_pause_en;
++	bool tx_pause_en;
++	bool pause_aneg_en;
+ };
+ 
+ u32 __ocelot_read_ix(struct ocelot *ocelot, u32 reg, u32 offset);
+-- 
+2.17.1
+
