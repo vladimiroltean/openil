@@ -2387,6 +2387,7 @@ menu "Netconf Supporting"
 endmenu
 menu "Time-Sensitive Networking tools"
 	source "package/tsntool/Config.in"
+	source "package/tsn-scripts/Config.in"
 endmenu
 menu "OPC UA tools"
 	source "package/libopen62541/Config.in"
